@@ -30,12 +30,51 @@ def send_command(
         print(f"❌ Error: {e}")
 
 def query_onkyo(
-        command, ip="192.168.50.164"
+        command,
+        ip="192.168.50.164",
+        port=60128,
+        timeout=3,
+        verbose=True,
+        expected_prefix=None,
 ):
     '''
     Send a query or control command to Onkyo, return raw decoded response
     '''
-    pass
+    msg = build_iscp_message(command)
+    if verbose:
+        print(f"Querying {ip}:{port} → {command}")
+    
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            sock.connect((ip, port))
+            sock.sendall(msg)
+
+            # Try receiving multiple packets (for late responses)
+            raw_data = b""
+            for _ in range(4):
+                try:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    raw_data += chunk
+                except socket.timeout:
+                    break
+
+            decoded = raw_data.decode(errors="ignore")
+            if verbose:
+                print("✅ Raw response received:")
+                print(decoded.strip())
+
+            # Filter expected response
+            if expected_prefix:
+                for line in decoded.splitlines():
+                    if expected_prefix in line:
+                        return line.strip()
+            return decoded.strip()
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return None
 
 def db_to_hex(vol_db):
     steps = int(vol_db * 2)
@@ -50,6 +89,10 @@ receiver_port = 60128
 volume = 40
 # command = "MVL" + str(db_to_hex(volume / 2))  # Add other codes like "PWR00", "MVL0A", etc.
 command = "PWR01"
-# send_command(receiver_ip, receiver_port, command)
+# send_command(command)
 
-get_power_status(receiver_ip)
+# x = query_onkyo("PWRQSTN", expected_prefix="!1PWR", verbose=True)
+# code = x.split("!1PWR")[1][:2]
+# print('Device on' if code == '01' else 'Standby')
+# if x == '!1PWR00' print('Device off') else 
+# print('Device off') if x == '!1PWR00' else print('Device on')
