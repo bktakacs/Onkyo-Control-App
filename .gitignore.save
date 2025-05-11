@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS Finder metadata
+.DS_Store
+
+# PyInstaller
+#  (bundled apps or build artifacts)
+dist/
+build/
+*.spec
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs and debug
+*.log
+
+# Unit test cache
+.pytest_cache/
+.tox/
+.coverage
+coverage.xml
+nosetests.xml
+test-results/
+
+# Wheels
+*.whl
+
+# Distribution
+*.egg-info/
+.eggs/
