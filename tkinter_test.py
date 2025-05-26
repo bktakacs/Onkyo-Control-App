@@ -53,8 +53,10 @@ l3 = Label(root,
            text='Volume Slider')
 l3.grid(column=0, row=2)
 
-
+# query volume and set as current
+get_current_volume = query_onkyo('MVLQSTN', expected_prefix='!1MVL', verbose=False).split('!1MVL')[1][:2]
 current_volume = DoubleVar()
+current_volume.set(int(get_current_volume, 16)) # convert hex to decimal
 
 def slider_changed(event):
     send_command("MVL" + str(db_to_hex(slider.get() / 2)))
@@ -117,18 +119,68 @@ r1 = Radiobutton(root,
                  text='mac Mini (PC)',
                  value='05',
                  variable=selected_input,
-                 command=select_audio_input)
+                 command=select_audio_input,)
 r2 = Radiobutton(root,
                  text='Record Player (PHONO)',
                  value='22',
                  variable=selected_input,
-                 command=select_audio_input)
+                 command=select_audio_input,)
 
 r1.grid(column=1, row=4)
 r2.grid(column=1, row=5)
 
+'''
+Other inputs:
+00 - VIDEO1/STB/DVR
+01 - VIDEO2/CBL/SAT
+02 - VIDEO3/GAME
+03 - VIDEO4/AUX
+04 - VIDEO5
+10 - DVD/BD
+11 - STRM BOX
+12 - TV
+2D - AIRPLAY
+2E - BLUETOOTH
+55 - HDMI5
+56 - HDMI6
+57 - HDMI7
+'''
 
 ################################################################################
-# RUN PERIODIC TASKS
+# LABEL 6 & LISTENING MODE DROPDOWN SELECTION
+
+l6 = Label(root,
+           text='Listening Mode')
+l6.grid(column=0, row=6)
+
+# options and set default value
+lm_dict = {
+    'STEREO': '00',
+    'DIRECT': '01',
+    'SURROUND': '02',
+    'FILM': '03',
+    'ACTION': '05',
+    'ALL CH STEREO': '0C',
+}
+lm_options = [
+    'STEREO','DIRECT','FILM','ACTION','ALL CH STEREO'
+]
+listening_mode = StringVar()
+listening_mode.set(lm_options[0])
+
+# change listening mode
+def change_listening_mode(mode):
+    mode = listening_mode.get()
+    send_command('LMD' + str(lm_dict[mode]))
+
+# drop down menu
+lm_options = OptionMenu(root,
+                        listening_mode,          # variable
+                        *lm_options, # values
+                        command=change_listening_mode,
+                        )   # command
+lm_options.grid(column=1, row=6)
+
+
 
 root.mainloop()
