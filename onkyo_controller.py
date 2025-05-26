@@ -87,9 +87,11 @@ def db_to_hex(vol_db):
 receiver_ip = "192.168.50.164"
 receiver_port = 60128
 volume = 40
-command = "MVL" + str(db_to_hex(volume / 2))  # Add other codes like "PWR00", "MVL0A", etc.
-# command = "PWR01"
+# command = "MVL" + str(db_to_hex(volume / 2))  # Add other codes like "PWR00", "MVL0A", etc.
+# command = "AMT00"
 # send_command(command)
+
+# query_onkyo('AMTQSTN', verbose=True, expected_prefix='!1AMT')
 
 # x = query_onkyo("PWRQSTN", expected_prefix="!1PWR", verbose=True)
 # code = x.split("!1PWR")[1][:2]
