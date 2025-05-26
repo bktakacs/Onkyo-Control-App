@@ -1,10 +1,25 @@
 from tkinter import *
 from onkyo_controller import *
 
+################################################################################
+# DEFINE FUNCTIONS
+def periodic_query():
+    global current_power_status
+    current_power_status = query_onkyo('PWRQTSN', expected_prefix='!1PWR', verbose=True)#.split('!PWR')[1][:2]
+    global current_selected_input
+    current_selected_input = query_onkyo('SLIQSTN', expected_prefix='!1SLI', verbose=True)#.split('!SLI')[1][:2]
+
+    root.after(600000, periodic_query)
+
+################################################################################
+# MAIN LOOP
+
 root = Tk()
 
 root.title("welcoem to app")
 root.geometry('1000x500')
+
+# periodic_query()
 
 ################################################################################
 # LABEL 1
@@ -48,7 +63,7 @@ def slider_changed(event):
 slider = Scale(
     root,
     from_=0,
-    to=100,
+    to=60,
     orient='horizontal',  # horizontal
     variable=current_volume,
     command=slider_changed
@@ -89,24 +104,31 @@ l5 = Label(root,
            text='Select Audio Input')
 l5.grid(column=0, row=4)
 
-def select_audio_input(selected_input):
-    send_command('SLI' + str(selected_input))
+def select_audio_input():
+    selected = selected_input.get()
+    send_command('SLI' + str(selected))
 
-# selection var and radio buttons
+# set default input to PC
 selected_input = StringVar()
+selected_input.set('05')
+
+# set radio buttons
 r1 = Radiobutton(root,
                  text='mac Mini (PC)',
                  value='05',
                  variable=selected_input,
-                 command=select_audio_input(selected_input='05'))
+                 command=select_audio_input)
 r2 = Radiobutton(root,
                  text='Record Player (PHONO)',
                  value='22',
                  variable=selected_input,
-                 command=select_audio_input('22'))
+                 command=select_audio_input)
 
 r1.grid(column=1, row=4)
 r2.grid(column=1, row=5)
 
+
+################################################################################
+# RUN PERIODIC TASKS
 
 root.mainloop()
