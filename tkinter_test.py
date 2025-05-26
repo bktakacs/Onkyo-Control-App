@@ -175,12 +175,10 @@ def change_listening_mode(mode):
 
 # drop down menu
 lm_options = OptionMenu(root,
-                        listening_mode,          # variable
+                        listening_mode, # variable
                         *lm_options, # values
-                        command=change_listening_mode,
-                        )   # command
+                        command=change_listening_mode, # command
+                        )
 lm_options.grid(column=1, row=6)
-
-
 
 root.mainloop()
