@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QMenu, QAction
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, Qt
 from onkyo_controller import build_iscp_message, send_command, query_onkyo, db_to_hex, receiver_ip, receiver_port
 
@@ -13,17 +14,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Welcome to Onkyo Controller")
-        self.setMinimumSize(QSize(1000, 500))
-        self.setGeometry(100, 100, 1000, 500)
-        self.setFixedSize(1000, 500)
-
-        button = QPushButton("Click me to control Onkyo")
-        button.setToolTip("This button will control your Onkyo receiver")
-        button.setGeometry(100, 100, 200, 50)
-
-        self.setCentralWidget(button)
-
+        self.setWindowTitle('Onkyo Controller App!!!')
+        self.setGeometry(1000, 500, 400, 300)
+        self.setWindowIcon(QIcon('on.jpg'))
     
 
 # Start the event loop.
