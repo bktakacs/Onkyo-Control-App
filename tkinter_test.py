@@ -8,7 +8,7 @@ def periodic_query():
     current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
     print(current_power_status, 'function call')
     l2.config(text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
-    wait_time = 5
+    wait_time = 1
     second = 1000
     minute = 1000 * 60
     root.after(wait_time * minute, periodic_query)
@@ -57,6 +57,7 @@ l3.grid(column=0, row=2)
 
 # query volume and set as current
 get_current_volume = query_onkyo('MVLQSTN', expected_prefix='!1MVL', verbose=False).split('!1MVL')[1][:2]
+
 current_volume = DoubleVar()
 current_volume.set(int(get_current_volume, 16)) # convert hex to decimal
 
@@ -163,19 +164,27 @@ lm_dict = {
     'FILM': '03',
     'ACTION': '05',
     'ALL CH STEREO': '0C',
+    # reverse
+    '00': 'STEREO',
+    '01': 'DIRECT',
+    '02': 'SURROUND',
+    '03': 'FILM',
+    '05': 'ACTION',
+    '0C': 'ALL CH STEREO',
 }
 lm_options = [
     'STEREO','DIRECT','FILM','ACTION','ALL CH STEREO'
 ]
 listening_mode = StringVar()
-listening_mode.set(lm_options[0])
+listening_mode.set(lm_dict[query_onkyo('LMDQSTN', expected_prefix='!1LMD', verbose=False).split('!1LMD')[1][:2]]) # set to current listening mode
+# listening_mode.set(lm_options[0])
 
 # change listening mode
 def change_listening_mode(mode):
     mode = listening_mode.get()
     send_command('LMD' + str(lm_dict[mode]))
 
-change_listening_mode(listening_mode.get())
+change_listening_mode(listening_mode.get()) # send command to onkyo
 
 # drop down menu
 lm_options = OptionMenu(root,
