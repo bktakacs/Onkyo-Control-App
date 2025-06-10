@@ -66,12 +66,12 @@ class Window(QWidget):
 
 
     
-    def power_toggle(self):
-        pwr_status = query_onkyo(
-            'PWRQSTN', expected_prefix='!1PWR', verbose=False
-        ).split('!1PWR')[1][:2]
-        send_command('PWR00' if pwr_status == '01' else 'PWR01')
-        l2.configure(text='Receiver: On' if pwr_status == '00' else 'Receiver: Standby')
+    # def power_toggle(self):
+    #     pwr_status = query_onkyo(
+    #         'PWRQSTN', expected_prefix='!1PWR', verbose=False
+    #     ).split('!1PWR')[1][:2]
+    #     send_command('PWR00' if pwr_status == '01' else 'PWR01')
+    #     l2.configure(text='Receiver: On' if pwr_status == '00' else 'Receiver: Standby')
 
 
 app = QApplication(sys.argv)
