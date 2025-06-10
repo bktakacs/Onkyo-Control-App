@@ -5,11 +5,14 @@ from onkyo_controller import *
 # DEFINE FUNCTIONS
 def periodic_query():
     global current_power_status
-    current_power_status = query_onkyo('PWRQTSN', expected_prefix='!1PWR', verbose=True)#.split('!PWR')[1][:2]
-    global current_selected_input
-    current_selected_input = query_onkyo('SLIQSTN', expected_prefix='!1SLI', verbose=True)#.split('!SLI')[1][:2]
+    current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
+    print(current_power_status, 'function call')
+    l2.config(text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
+    wait_time = 5
+    second = 1000
+    minute = 1000 * 60
+    root.after(wait_time * minute, periodic_query)
 
-    root.after(600000, periodic_query)
 
 ################################################################################
 # MAIN LOOP
@@ -18,8 +21,6 @@ root = Tk()
 
 root.title("welcoem to app")
 root.geometry('1000x500')
-
-# periodic_query()
 
 ################################################################################
 # LABEL 1
@@ -30,8 +31,9 @@ l1.grid(column=1, row=0)
 ################################################################################
 # LABEL 2 & BUTTON 1: POWER TOGGLE
 
-get_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
-l2 = Label(root, text='Receiver: On' if get_power_status == '01' else 'Receiver: Standby')
+current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
+print(current_power_status, 'initial call')
+l2 = Label(root, text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
 l2.grid(column=0, row=1)
 
 def clicked_pwr_toggle():
@@ -173,6 +175,8 @@ def change_listening_mode(mode):
     mode = listening_mode.get()
     send_command('LMD' + str(lm_dict[mode]))
 
+change_listening_mode(listening_mode.get())
+
 # drop down menu
 lm_options = OptionMenu(root,
                         listening_mode, # variable
@@ -180,5 +184,7 @@ lm_options = OptionMenu(root,
                         command=change_listening_mode, # command
                         )
 lm_options.grid(column=1, row=6)
+
+periodic_query()
 
 root.mainloop()
