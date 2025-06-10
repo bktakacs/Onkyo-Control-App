@@ -6,7 +6,6 @@ from onkyo_controller import *
 def periodic_query():
     global current_power_status
     current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
-    print(current_power_status, 'function call')
     l2.config(text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
     wait_time = 1
     second = 1000
@@ -32,7 +31,6 @@ l1.grid(column=1, row=0)
 # LABEL 2 & BUTTON 1: POWER TOGGLE
 
 current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
-print(current_power_status, 'initial call')
 l2 = Label(root, text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
 l2.grid(column=0, row=1)
 
