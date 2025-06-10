@@ -49,5 +49,3 @@ test-results/
 # Distribution
 *.egg-info/
 .eggs/
-
-__pycache__/onkyo_controller.cpython-313.pyc
