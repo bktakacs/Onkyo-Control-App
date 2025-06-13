@@ -4,8 +4,9 @@ A small application to control my Onkyo TX-NR585 AV receiver using Python's `tki
 
 ## Features
 - [x] Power Toggle
-- [ ] Volume Change
-- [ ] Input Change
+- [x] Volume Change
+- [x] Mute
+- [x] Input Change
 
 ## Files
 - tkinter_test.py : builds GUI
