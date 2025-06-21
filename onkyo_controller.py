@@ -1,4 +1,5 @@
 import socket
+import datetime
 
 def build_iscp_message(command):
     # Prepare ISCP message
@@ -25,7 +26,7 @@ def send_command(
             sock.settimeout(3)
             sock.connect((ip, port))
             sock.sendall(msg)
-            print("✅ Command {} sent.".format(command))
+            print("✅ Command {} sent at {}".format(command, datetime.datetime.now()))
     except Exception as e:
         print(f"❌ Error: {e}")
 
