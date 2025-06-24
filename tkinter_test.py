@@ -4,8 +4,11 @@ from onkyo_controller import *
 ################################################################################
 # DEFINE FUNCTIONS
 def periodic_query():
+    '''
+    Query power status by the minute
+    '''
     global current_power_status
-    current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True).split('!1PWR')[1][:2]
+    current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
     l2.config(text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
     wait_time = 1
     second = 1000
