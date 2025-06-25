@@ -1,6 +1,4 @@
 pyqt5
-pandas
-striprtf
-numpy
 pynput
 rumps
+py2app
