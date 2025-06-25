@@ -9,7 +9,7 @@ OPTIONS = {
     'plist': {
         'LSUIElement': True,
     },
-    'packages': ['rumps, '],
+    'packages': ['rumps', 'pynput'],
 }
 
 setup(
@@ -18,3 +18,6 @@ setup(
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )
+
+# then run in the terminal:
+# python setup_rumps.py py2app
