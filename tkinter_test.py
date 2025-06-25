@@ -1,5 +1,7 @@
 from tkinter import *
 from onkyo_controller import *
+from pynput import keyboard
+import threading
 
 ################################################################################
 # DEFINE FUNCTIONS
@@ -228,17 +230,42 @@ def decrease_volume():
     new_volume = max(current_volume.get() - 2, 0)
     slider_changed(current_volume.set(new_volume))
 
-def ralt_press(event):
-    # debug
-    print(f"Pressed: {event.keysym}, state: {event.state}")
+# def ralt_press(event):
+#     # debug
+#     print(f"Pressed: {event.keysym}, state: {event.state}")
 
-    is_ralt_pressed = (event.state & 16) != 0 or (event.state & 0x20000) != 0
-    if is_ralt_pressed and event.keysym == 'Home':
-        increase_volume()
-    elif is_ralt_pressed and event.keysym == 'End':
-        decrease_volume()
+#     is_ralt_pressed = (event.state & 16) != 0 or (event.state & 0x20000) != 0
+#     if is_ralt_pressed and event.keysym == 'Home':
+#         increase_volume()
+#     elif is_ralt_pressed and event.keysym == 'End':
+#         decrease_volume()
 
-root.bind("<KeyPress>", ralt_press)
-root.focus_set()
+# root.bind("<KeyPress>", ralt_press)
+# root.focus_set()
+
+current_keys = set()
+
+def on_press(key):
+    try:
+        if key == keyboard.Key.home and keyboard.Key.alt_r in current_keys:
+            increase_volume()
+        elif key == keyboard.Key.end and keyboard.Key.alt_r in current_keys:
+            decrease_volume()
+        current_keys.add(key)
+    except AttributeError:
+        pass
+
+def on_release(key):
+    current_keys.discard(key)
+
+def start_key_listener():
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+    listener.daemon = True
+    listener.start()
+
+start_key_listener()
+
+################################################################################
+# MAIN LOOP
 
 root.mainloop()
