@@ -8,7 +8,10 @@ def periodic_query():
     Query power status by the minute
     '''
     global current_power_status
-    current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=False).split('!1PWR')[1][:2]
+    try:
+        current_power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=verbosity).split('!1PWR')[1][:2]
+    except:
+        print(query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True))
     l2.config(text='Receiver: On' if current_power_status == '01' else 'Receiver: Standby')
     wait_time = 1
     second = 1000
@@ -88,7 +91,7 @@ get_mute_status = query_onkyo('AMTQSTN', expected_prefix='!1AMT', verbose=verbos
 # display mute status
 l4 = Label(root,
            text='Mute: On' if get_mute_status == '01' else 'Mute: Off')
-l4.grid(column=0, row=3)
+l4.grid(column=2, row=1)
 
 # mute toggle event
 def clicked_mute_toggle():
@@ -104,14 +107,14 @@ b2 = Button(root,
             fg='Red',
             command=clicked_mute_toggle)
 
-b2.grid(column=1, row=3)
+b2.grid(column=3, row=1)
 
 ################################################################################
 # LABEL 5 & RADIOBUTTON INPUT SELECTOR
 
 l5 = Label(root,
            text='Select Audio Input')
-l5.grid(column=0, row=4)
+l5.grid(column=4, row=1)
 
 def select_audio_input():
     selected = selected_input.get()
@@ -133,8 +136,8 @@ r2 = Radiobutton(root,
                  variable=selected_input,
                  command=select_audio_input,)
 
-r1.grid(column=1, row=4)
-r2.grid(column=1, row=5)
+r1.grid(column=5, row=1)
+r2.grid(column=5, row=2)
 
 '''
 Other inputs:
@@ -158,7 +161,7 @@ Other inputs:
 
 l6 = Label(root,
            text='Listening Mode')
-l6.grid(column=0, row=6)
+l6.grid(column=2, row=2)
 
 # options and set default value
 lm_dict = {
@@ -207,8 +210,35 @@ lm_options = OptionMenu(root,
                         *lm_options, # values
                         command=change_listening_mode, # command
                         )
-lm_options.grid(column=1, row=6)
+lm_options.grid(column=3, row=2)
+
+################################################################################
+# PERIODIC POWER STATUS QUERY
 
 periodic_query()
+
+################################################################################
+# VOLUME UP & DOWN KEYBINDS
+
+def increase_volume():
+    new_volume = min(current_volume.get() + 2, 60)
+    slider_changed(current_volume.set(new_volume))
+
+def decrease_volume():
+    new_volume = max(current_volume.get() - 2, 0)
+    slider_changed(current_volume.set(new_volume))
+
+def ralt_press(event):
+    # debug
+    print(f"Pressed: {event.keysym}, state: {event.state}")
+
+    is_ralt_pressed = (event.state & 16) != 0 or (event.state & 0x20000) != 0
+    if is_ralt_pressed and event.keysym == 'Home':
+        increase_volume()
+    elif is_ralt_pressed and event.keysym == 'End':
+        decrease_volume()
+
+root.bind("<KeyPress>", ralt_press)
+root.focus_set()
 
 root.mainloop()
