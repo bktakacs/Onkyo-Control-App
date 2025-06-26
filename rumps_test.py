@@ -6,6 +6,7 @@
 
 # --- Imports --- #
 import rumps
+rumps.debug_mode(True)
 from onkyo_controller import *
 from pynput import keyboard
 import threading
@@ -19,22 +20,23 @@ def get_power_status():
     try:
         power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=verbosity).split('!1PWR')[1][:2]
         return power_status
-    except:
-        print('Error: ' + query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True))
+    except Exception as e:
+        print(e)
+        # print('Error: ' + query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True))
 
 def get_current_volume():
     try:
         volume = query_onkyo('MVLQSTN', expected_prefix='!1MVL', verbose=verbosity).split('!1MVL')[1][:2]
         return int(volume, 16)
-    except:
-        print('Error: ' + query_onkyo('MVLQSTN', expected_prefix='!1MVL', verbose=True))
+    except Exception as e:
+        print(e)
 
 def get_mute_status():
     try:
         mute_status = query_onkyo('AMTQSTN', expected_prefix='!1AMT', verbose=verbosity).split('!1AMT')[1][:2]
         return mute_status
-    except:
-        print('Error: ' + query_onkyo('AMTQSTN', expected_prefix='!1AMT', verbose=True))
+    except Exception as e:
+        print(e)
 
 def set_volume(vol):
     vol = max(0, min(60, vol))  # Clamp between 0 and 80
