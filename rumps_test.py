@@ -43,18 +43,21 @@ def set_volume(vol):
     hex_val = f"{vol:02X}"
     send_command(f"MVL{hex_val}")
 
+
 # --- Get Current Status --- #
 power_status_code = get_power_status()
-power_status = 'On' if power_status_code == '01' else 'Standby'
+power_status = 'On' if power_status_code == '01' else 'Standby' if power_status_code == '00' else None
+
 volume = get_current_volume()
+
 mute_status_code = get_mute_status()
-mute_status = 'On' if mute_status_code == '01' else 'Off'
+mute_status = 'On' if mute_status_code == '01' else 'Off' if mute_status_code == '00' else None
 
 
 # --- Rumps Setup --- #
 class OnkyoStatusBarApp(rumps.App):
     def __init__(self):
-        super(OnkyoStatusBarApp, self).__init__('Onkyo Status Bar App', title='音響 Vol: --', quit_button=None)
+        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Status Bar App', title='音響 Vol: --', quit_button=None)
         self.menu = [
             rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power, key="power"),
             rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute, key='mute'),
@@ -86,6 +89,10 @@ class OnkyoStatusBarApp(rumps.App):
         if self.power_status is not None:
             self.menu["power"].title = 'Toggle Power ({})'.format(self.power_status)
 
+    def update_mute_status(self):
+        if self.mute_status is not None:
+            self.menu['mute'].title = 'Toggle Mute ({})'.format(self.mute_status)
+
     def increase_volume(self, _):
         if self.current_volume is not None:
             self.current_volume = min(self.current_volume + 2, 60)
@@ -105,7 +112,8 @@ class OnkyoStatusBarApp(rumps.App):
 
     def toggle_mute(self, _):
         send_command('AMT00' if self.mute_status == '01' else 'AMT01')
-        self.update_power_status()
+        rumps.notification(title='Mute {}'.format(self.mute_status), subtitle=None, message=None, data=None, sound=True)
+        self.update_mute_status()
 
     def poll_volume_loop(self):
         while self.keep_running:
@@ -134,6 +142,8 @@ class OnkyoStatusBarApp(rumps.App):
                 self.increase_volume(None)
             if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
                 self.decrease_volume(None)
+            if keyboard.Key.alt_r in self.pressed_keys and keyboard.Key.page_up:
+                self.toggle_mute(None)
         except AttributeError:
             pass
 
@@ -149,27 +159,6 @@ class OnkyoStatusBarApp(rumps.App):
         listener.start()
 
 
-# --- Global Keypresss Recognition --- #
-# current_keys = set()
-# vol = OnkyoStatusBarApp.poll_volume_loop
-# def on_press(key):
-#     try:
-#         if key == keyboard.Key.home and keyboard.Key.alt_r in current_keys:
-#             increase_volume()
-#         elif key == keyboard.Key.end and keyboard.Key.alt_r in current_keys:
-#             decrease_volume()
-#         current_keys.add(key)
-#     except AttributeError:
-#         pass
-
-# def on_release(key):
-#     current_keys.discard(key)
-
-# def start_key_listener():
-#     listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-#     listener.daemon = True
-#     listener.start()
-
-# start_key_listener()
+# --- Main Loop --- #
 
 OnkyoStatusBarApp().run()
