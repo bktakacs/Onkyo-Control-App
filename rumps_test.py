@@ -79,6 +79,8 @@ class OnkyoStatusBarApp(rumps.App):
         threading.Thread(target=self.poll_volume_loop, daemon=True).start()
         # threading.Thread(target=self.poll_power_mute, daemon=True).start()
 
+        self.icon = 'on.jpg'
+
     def update_title(self):
         if self.current_volume is not None:
             self.title = f"音響 Vol: {self.current_volume}"
@@ -112,7 +114,7 @@ class OnkyoStatusBarApp(rumps.App):
 
     def toggle_mute(self, _):
         send_command('AMT00' if self.mute_status == '01' else 'AMT01')
-        rumps.notification(title='Mute {}'.format(self.mute_status), subtitle=None, message=None, data=None, sound=True)
+        rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format(self.mute_status), message='Mute has been toggled {}.'.format(str(self.mute_status).lower()), data=None, sound=True)
         self.update_mute_status()
 
     def poll_volume_loop(self):
