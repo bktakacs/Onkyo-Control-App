@@ -291,15 +291,23 @@ class OnkyoStatusBarApp(rumps.App):
     # --- Key Listener --- #
     def on_key_press(self, key):
         self.pressed_keys.add(key)
-        print(self.pressed_keys)
+        # print(self.pressed_keys)
         try:
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.home:
+            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.home:
                 
+            #     self.increase_volume(None)
+            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
+            #     self.decrease_volume(None)
+            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.page_down:
+            #     self.toggle_mute(None)
+        # with keyboard macro using hyper home/end/pgup:
+            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.home:
                 self.increase_volume(None)
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
+            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.end:
                 self.decrease_volume(None)
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.page_down:
+            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.page_down:
                 self.toggle_mute(None)
+    
         except AttributeError:
             pass
 
