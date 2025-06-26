@@ -2,3 +2,4 @@ pyqt5
 pynput
 rumps
 py2app
+jaraco.text # needed for py2app for some reason
