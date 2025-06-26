@@ -3,18 +3,111 @@
 # With the help of: ChatGPT
 # Python 3.13.3
 
+# --- Fix App Somehow --- #
+import os
+import sys
+
+if hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
+elif getattr(sys, 'frozen', False):
+    # When running from a .app bundle
+    bundle_dir = os.path.abspath(os.path.dirname(sys.executable))
+    os.chdir(bundle_dir)
+
 
 # --- Imports --- #
 import rumps
-rumps.debug_mode(True)
-from onkyo_controller import *
+rumps.debug_mode(False)
 from pynput import keyboard
 import threading
 import time
+import socket
+import datetime
+
+
+# --- Onkyo Information --- #
+receiver_ip = "192.168.50.164"
+receiver_port = 60128
 
 
 # --- Onkyo Commands --- #
 verbosity = False # for debugging
+
+def build_iscp_message(command):
+    # Prepare ISCP message
+    header = b'ISCP'                             # 4 bytes
+    header += b'\x00\x00\x00\x10'               # Header size (16 bytes)
+    message = f'!1{command}'.encode('ascii') + b'\x0D'  # Add carriage return
+    data_size = len(message).to_bytes(4, 'big')         # Payload size
+
+    # Version + reserved (4 bytes) = 0x01, 0x00, 0x00, 0x00
+    header += data_size + b'\x01\x00\x00\x00'
+    return header + message
+
+def send_command(
+        command,
+        ip="192.168.50.164",
+        port=60128
+):
+    
+    msg = build_iscp_message(command)
+    print(f"Sending to {ip}:{port} → {command}")
+    
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(3)
+            sock.connect((ip, port))
+            sock.sendall(msg)
+            print("✅ Command {} sent at {}".format(command, datetime.datetime.now()))
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+def query_onkyo(
+        command,
+        ip="192.168.50.164",
+        port=60128,
+        timeout=3,
+        verbose=True,
+        expected_prefix=None,
+):
+    '''
+    Send a query or control command to Onkyo, return raw decoded response
+    '''
+    msg = build_iscp_message(command)
+    if verbose:
+        print(f"Querying {ip}:{port} → {command}")
+    
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            sock.connect((ip, port))
+            sock.sendall(msg)
+
+            # Try receiving multiple packets (for late responses)
+            raw_data = b""
+            for _ in range(4):
+                try:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    raw_data += chunk
+                except socket.timeout:
+                    break
+
+            decoded = raw_data.decode(errors="ignore")
+            if verbose:
+                print("✅ Raw response received:")
+                print(decoded.strip())
+
+            # Filter expected response
+            if expected_prefix:
+                for line in decoded.splitlines():
+                    if expected_prefix in line:
+                        return line.strip()
+            return decoded.strip()
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return None
 
 def get_power_status():
     try:
@@ -22,7 +115,6 @@ def get_power_status():
         return 'On' if power_status == '01' else 'Standby' if power_status == '00' else None
     except Exception as e:
         print(e)
-        # print('Error: ' + query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True))
 
 def get_current_volume():
     try:
@@ -32,7 +124,7 @@ def get_current_volume():
         print(e)
 
 def set_volume(vol):
-    vol = max(0, min(60, vol))  # Clamp between 0 and 80
+    vol = max(0, min(60, vol))  # redundancy Clamp between 0 and 60
     hex_val = f"{vol:02X}"
     send_command(f"MVL{hex_val}")
 
@@ -187,6 +279,10 @@ class OnkyoStatusBarApp(rumps.App):
             if mute_status is not None:
                 self.mute_status = mute_status
                 self.update_mute_status()
+
+            # if power_status == None or mute_status == None:
+            #     print(power_status)
+            #     print(mute_status)
             time.sleep(5)
 
 
