@@ -4,7 +4,7 @@ import os
 from setuptools import setup
 from setuptools import find_packages
 
-APP = ['rumps_test.py']
+APP = ['rumps_app.py']
 DATA_FILES = []
 OPTIONS = {
     'argv_emulation': False,
