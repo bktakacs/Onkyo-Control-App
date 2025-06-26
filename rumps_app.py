@@ -145,21 +145,30 @@ mute_status = get_mute_status()
 # --- Rumps Setup --- #
 class OnkyoStatusBarApp(rumps.App):
     def __init__(self):
-        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Status Bar App', title='Vol: --', quit_button=None)
+        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Control App', title='Vol: --', quit_button=None)
 
         # Create menu items which can be updated later
+        # power & mute toggle
         self.power_item = rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power)
         self.mute_item = rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute)
 
+        # volume 
         self.volup_item = rumps.MenuItem("Increase Volume", callback=self.increase_volume)
         self.voldn_item = rumps.MenuItem("Decrease Volume", callback=self.decrease_volume)
 
+        # audio input
         self.audio_pc_item = rumps.MenuItem('mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
         self.audio_ph_item = rumps.MenuItem('Record Player (PHONO)', callback=lambda _: self.select_audio_input('22'))
+        self.audio_bt_item = rumps.MenuItem('Bluetooth (BT)', callback=lambda _: self.select_audio_input('2E'))
+        self.audio_ap_item = rumps.MenuItem('Airplay (AIR)', callback=lambda _: self.select_audio_input('2D'))
 
+        # input selection
         self.lst_mode_stereo = rumps.MenuItem('STEREO', callback=lambda _: self.select_listening_mode('00'))
+        self.lst_mode_film = rumps.MenuItem('FILM', callback=lambda _: self.select_listening_mode('03'))
         self.lst_mode_action = rumps.MenuItem('ACTION', callback=lambda _: self.select_listening_mode('05'))
 
+
+        # controls
         self.instruction1 = rumps.MenuItem("Volume Up: Alt-R + Home")
         self.instruction2 = rumps.MenuItem("Volume Down: Alt-R + End")
         self.instruction3 = rumps.MenuItem("Toggle Mute: Alt-R + PgDn")
@@ -252,12 +261,14 @@ class OnkyoStatusBarApp(rumps.App):
         send_command('SLI' + input)
         self.audio_pc_item.state = 1 if input == '05' else 0
         self.audio_ph_item.state = 1 if input == '22' else 0
+        self.audio_bt_item.state = 1 if input == '2E' else 0
+        self.audio_ap_item.state = 1 if input == '2D' else 0
 
     def select_listening_mode(self, input):
         send_command('LMD' + input)
         self.lst_mode_stereo.state = 1 if input == '00' else 0
+        self.lst_mode_film.state   = 1 if input == '03' else 0
         self.lst_mode_action.state = 1 if input == '05' else 0
-
 
     # --- Loop Methods --- #
     def poll_volume_loop(self):
