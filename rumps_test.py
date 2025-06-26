@@ -46,8 +46,8 @@ def build_iscp_message(command):
 
 def send_command(
         command,
-        ip="192.168.50.164",
-        port=60128
+        ip=receiver_ip,
+        port=receiver_port
 ):
     
     msg = build_iscp_message(command)
@@ -64,8 +64,8 @@ def send_command(
 
 def query_onkyo(
         command,
-        ip="192.168.50.164",
-        port=60128,
+        ip=receiver_ip,
+        port=receiver_port,
         timeout=3,
         verbose=True,
         expected_prefix=None,
@@ -280,9 +280,6 @@ class OnkyoStatusBarApp(rumps.App):
                 self.mute_status = mute_status
                 self.update_mute_status()
 
-            # if power_status == None or mute_status == None:
-            #     print(power_status)
-            #     print(mute_status)
             time.sleep(5)
 
 
@@ -294,8 +291,10 @@ class OnkyoStatusBarApp(rumps.App):
     # --- Key Listener --- #
     def on_key_press(self, key):
         self.pressed_keys.add(key)
+        print(self.pressed_keys)
         try:
             if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.home:
+                
                 self.increase_volume(None)
             if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
                 self.decrease_volume(None)
@@ -308,12 +307,12 @@ class OnkyoStatusBarApp(rumps.App):
         self.pressed_keys.discard(key)
 
     def start_key_listener(self):
-        listener = keyboard.Listener(
+        self.listener = keyboard.Listener(
             on_press=self.on_key_press,
             on_release=self.on_key_release,
         )
-        listener.daemon = True
-        listener.start()
+        # self.listener.daemon = True
+        self.listener.start()
 
 
 # --- Main Loop --- #
