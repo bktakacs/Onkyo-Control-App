@@ -19,7 +19,7 @@ verbosity = False # for debugging
 def get_power_status():
     try:
         power_status = query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=verbosity).split('!1PWR')[1][:2]
-        return power_status
+        return 'On' if power_status == '01' else 'Standby' if power_status == '00' else None
     except Exception as e:
         print(e)
         # print('Error: ' + query_onkyo('PWRQSTN', expected_prefix='!1PWR', verbose=True))
@@ -31,76 +31,115 @@ def get_current_volume():
     except Exception as e:
         print(e)
 
-def get_mute_status():
-    try:
-        mute_status = query_onkyo('AMTQSTN', expected_prefix='!1AMT', verbose=verbosity).split('!1AMT')[1][:2]
-        return mute_status
-    except Exception as e:
-        print(e)
-
 def set_volume(vol):
     vol = max(0, min(60, vol))  # Clamp between 0 and 80
     hex_val = f"{vol:02X}"
     send_command(f"MVL{hex_val}")
 
+def get_mute_status():
+    try:
+        mute_status = query_onkyo('AMTQSTN', expected_prefix='!1AMT', verbose=verbosity).split('!1AMT')[1][:2]
+        return 'On' if mute_status == '01' else 'Off' if mute_status == '00' else None
+    except Exception as e:
+        print(e)
 
-# --- Get Current Status --- #
-power_status_code = get_power_status()
-power_status = 'On' if power_status_code == '01' else 'Standby' if power_status_code == '00' else None
 
+# --- Get Current Statuses --- #
+power_status = get_power_status()
 volume = get_current_volume()
-
-mute_status_code = get_mute_status()
-mute_status = 'On' if mute_status_code == '01' else 'Off' if mute_status_code == '00' else None
+mute_status = get_mute_status()
 
 
 # --- Rumps Setup --- #
 class OnkyoStatusBarApp(rumps.App):
     def __init__(self):
-        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Status Bar App', title='音響 Vol: --', quit_button=None)
+        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Status Bar App', title='Vol: --', quit_button=None)
+
+        # Create menu items which can be updated later
+        self.power_item = rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power)
+        self.mute_item = rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute)
+
+        self.volup_item = rumps.MenuItem("Increase Volume", callback=self.increase_volume)
+        self.voldn_item = rumps.MenuItem("Decrease Volume", callback=self.decrease_volume)
+
+        self.audio_pc_item = rumps.MenuItem('mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
+        self.audio_ph_item = rumps.MenuItem('Record Player (PHONO)', callback=lambda _: self.select_audio_input('22'))
+
+        self.lst_mode_stereo = rumps.MenuItem('STEREO', callback=lambda _: self.select_listening_mode('00'))
+        self.lst_mode_action = rumps.MenuItem('ACTION', callback=lambda _: self.select_listening_mode('05'))
+
+        self.instruction1 = rumps.MenuItem("Volume Up: Alt-R + Home")
+        self.instruction2 = rumps.MenuItem("Volume Down: Alt-R + End")
+        self.instruction3 = rumps.MenuItem("Toggle Mute: Alt-R + PgDn")
+
+        # Submenus for inputs
+        audio_input_menu = (
+            self.audio_pc_item,
+            self.audio_ph_item,
+        )
+
+        listening_mode_menu = (
+            self.lst_mode_stereo,
+            self.lst_mode_action,
+        )
+
+        # Assign top-level menu
         self.menu = [
-            rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power, key="power"),
-            rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute, key='mute'),
+            self.power_item,
+            self.mute_item,
             None,
-            rumps.MenuItem("Increase Volume", callback=self.increase_volume, key='volup'),
-            rumps.MenuItem("Decrease Volume", callback=self.decrease_volume, key='voldown'),
+            self.volup_item,
+            self.voldn_item,
             None,
-            rumps.MenuItem("Control Volume with Alt-R + Home (Up) or End (Down)"),
+            ('Audio Input', audio_input_menu),
+            ('Listening Mode', listening_mode_menu),
+            None,
+            self.instruction1,
+            self.instruction2,
+            self.instruction3,
+            None,
             rumps.MenuItem("Quit", callback=self.quit_app)
         ]
+
         self.power_status = power_status
         self.current_volume = volume
         self.mute_status = mute_status
+
+        self.update_power_status()
+        self.update_mute_status()
+        self.audio_pc_item.state = 1
+        self.lst_mode_stereo.state = 1
 
         self.keep_running = True
 
         self.pressed_keys = set()
         threading.Thread(target=self.start_key_listener, daemon=True).start()
         threading.Thread(target=self.poll_volume_loop, daemon=True).start()
-        # threading.Thread(target=self.poll_power_mute, daemon=True).start()
+        threading.Thread(target=self.poll_power_mute_loop, daemon=True).start()
 
         self.icon = 'on.jpg'
 
+    # --- Update Items --- #
     def update_title(self):
         if self.current_volume is not None:
-            self.title = f"音響 Vol: {self.current_volume}"
+            self.title = f"Vol: {self.current_volume}"
         else:
-            self.title = "音響 Vol: --"
+            self.title = "Vol: --"
 
     def update_power_status(self):
         if self.power_status is not None:
-            self.menu["power"].title = 'Toggle Power ({})'.format(self.power_status)
+            self.power_item.title = 'Toggle Power ({})'.format(self.power_status)
 
     def update_mute_status(self):
         if self.mute_status is not None:
-            self.menu['mute'].title = 'Toggle Mute ({})'.format(self.mute_status)
+            self.mute_item.title = 'Toggle Mute ({})'.format(self.mute_status)
 
+    # --- Command Methods --- #
     def increase_volume(self, _):
         if self.current_volume is not None:
             self.current_volume = min(self.current_volume + 2, 60)
             self.update_title()
             set_volume(self.current_volume)
-            # send_command('MVL' + str(db_to_hex(self.current_volume / 2)))
 
     def decrease_volume(self, _):
         if self.current_volume is not None:
@@ -109,14 +148,26 @@ class OnkyoStatusBarApp(rumps.App):
             set_volume(self.current_volume)
 
     def toggle_power(self, _):
-        send_command('PWR00' if self.power_status == '01' else 'PWR01')
+        send_command('PWR00' if self.power_status == 'On' else 'PWR01')
         self.update_power_status()
 
     def toggle_mute(self, _):
-        send_command('AMT00' if self.mute_status == '01' else 'AMT01')
-        rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format(self.mute_status), message='Mute has been toggled {}.'.format(str(self.mute_status).lower()), data=None, sound=True)
+        send_command('AMT00' if self.mute_status == 'On' else 'AMT01')
+        rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format('On' if self.mute_status == 'Off' else 'Off'), message='Mute has been toggled {}.'.format(str('On' if self.mute_status == 'Off' else 'Off').lower()), data=None, sound=True)
         self.update_mute_status()
 
+    def select_audio_input(self, input):
+        send_command('SLI' + input)
+        self.audio_pc_item.state = 1 if input == '05' else 0
+        self.audio_ph_item.state = 1 if input == '22' else 0
+
+    def select_listening_mode(self, input):
+        send_command('LMD' + input)
+        self.lst_mode_stereo.state = 1 if input == '00' else 0
+        self.lst_mode_action.state = 1 if input == '05' else 0
+
+
+    # --- Loop Methods --- #
     def poll_volume_loop(self):
         while self.keep_running:
             vol = get_current_volume()
@@ -124,12 +175,22 @@ class OnkyoStatusBarApp(rumps.App):
                 self.current_volume = vol
                 self.update_title()
             time.sleep(1)
+    
+    def poll_power_mute_loop(self):
+        while self.keep_running:
+            power_status = get_power_status()
+            if power_status is not None:
+                self.power_status = power_status
+                self.update_power_status()
 
-    # def poll_power_mute(self):
-    #     while self.keep_running:
-    #         app_power_status = get_power_status()
-    #         if app_power_status is not None:
+            mute_status = get_mute_status()
+            if mute_status is not None:
+                self.mute_status = mute_status
+                self.update_mute_status()
+            time.sleep(5)
 
+
+    # --- Quit App --- #
     def quit_app(self, _):
         self.keep_running = False
         rumps.quit_application()
@@ -142,7 +203,7 @@ class OnkyoStatusBarApp(rumps.App):
                 self.increase_volume(None)
             if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
                 self.decrease_volume(None)
-            if keyboard.Key.alt_r in self.pressed_keys and keyboard.Key.page_up:
+            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.page_down:
                 self.toggle_mute(None)
         except AttributeError:
             pass
