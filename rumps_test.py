@@ -96,15 +96,15 @@ class OnkyoStatusBarApp(rumps.App):
     def increase_volume(self, _):
         if self.current_volume is not None:
             self.current_volume = min(self.current_volume + 2, 60)
-            set_volume(self.current_volume)
             self.update_title()
+            set_volume(self.current_volume)
             # send_command('MVL' + str(db_to_hex(self.current_volume / 2)))
 
     def decrease_volume(self, _):
         if self.current_volume is not None:
             self.current_volume = max(self.current_volume - 2, 0)
-            set_volume(self.current_volume)
             self.update_title()
+            set_volume(self.current_volume)
 
     def toggle_power(self, _):
         send_command('PWR00' if self.power_status == '01' else 'PWR01')
@@ -127,8 +127,6 @@ class OnkyoStatusBarApp(rumps.App):
     #     while self.keep_running:
     #         app_power_status = get_power_status()
     #         if app_power_status is not None:
-                
-
 
     def quit_app(self, _):
         self.keep_running = False
@@ -160,5 +158,4 @@ class OnkyoStatusBarApp(rumps.App):
 
 
 # --- Main Loop --- #
-
 OnkyoStatusBarApp().run()
