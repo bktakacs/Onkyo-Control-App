@@ -14,6 +14,17 @@ elif getattr(sys, 'frozen', False):
     bundle_dir = os.path.abspath(os.path.dirname(sys.executable))
     os.chdir(bundle_dir)
 
+import subprocess
+
+def check_accessibility_permissions():
+    result = subprocess.run(
+        ['osascript', '-e', 'tell application "System Events" to return UI elements enabled'],
+        capture_output=True,
+        text=True
+    )
+    if result.stdout.strip() != 'true':
+        print("Accessibility permissions are not enabled. Please enable them in System Preferences.")
+
 
 # --- Imports --- #
 import rumps
@@ -344,6 +355,8 @@ def start_hotkey_listener(app_instance):
 
 # --- Run --- #
 if __name__ == "__main__":
+
+    check_accessibility_permissions()
 
     app_instance = OnkyoStatusBarApp()
 

@@ -11,6 +11,9 @@ OPTIONS = {
     'iconfile': 'on.jpg',
     'plist': {
         'LSUIElement': True,
+        'LSEnvironment': {
+            'PYTHONPATH': os.environ.get('PYTHONPATH', ''),
+        },
     },
     'packages': ['rumps', 'pynput'],
 }
