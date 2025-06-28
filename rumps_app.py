@@ -157,7 +157,7 @@ class OnkyoStatusBarApp(rumps.App):
         self.voldn_item = rumps.MenuItem("Decrease Volume", callback=self.decrease_volume)
 
         # audio input
-        self.audio_pc_item = rumps.MenuItem('mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
+        self.audio_pc_item = rumps.MenuItem('Mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
         self.audio_ph_item = rumps.MenuItem('Record Player (PHONO)', callback=lambda _: self.select_audio_input('22'))
         self.audio_bt_item = rumps.MenuItem('Bluetooth (BT)', callback=lambda _: self.select_audio_input('2E'))
         self.audio_ap_item = rumps.MenuItem('Airplay (AIR)', callback=lambda _: self.select_audio_input('2D'))
@@ -168,10 +168,11 @@ class OnkyoStatusBarApp(rumps.App):
         self.lst_mode_action = rumps.MenuItem('ACTION', callback=lambda _: self.select_listening_mode('05'))
 
 
-        # controls
-        self.instruction1 = rumps.MenuItem("Volume Up: Alt-R + Home")
-        self.instruction2 = rumps.MenuItem("Volume Down: Alt-R + End")
-        self.instruction3 = rumps.MenuItem("Toggle Mute: Alt-R + PgDn")
+        # control instructions
+        self.instruction1 = rumps.MenuItem('Volume Up:\t\tAlt-R + Home')
+        self.instruction2 = rumps.MenuItem('Volume Down:\tAlt-R + End')
+        self.instruction3 = rumps.MenuItem('Toggle mute:\t\tAlt-R + PgUp')
+
 
         # Submenus for inputs
         audio_input_menu = (
@@ -337,6 +338,7 @@ if __name__ == "__main__":
 
     app_instance = OnkyoStatusBarApp()
 
-    threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start()    
+    threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start() 
+
     # --- Main Loop --- #
     app_instance.run()
