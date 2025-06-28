@@ -277,7 +277,7 @@ class OnkyoStatusBarApp(rumps.App):
             if vol is not None:
                 self.current_volume = vol
                 self.update_title()
-            time.sleep(1)
+            time.sleep(10)
     
     def poll_power_mute_loop(self):
         while self.keep_running:
