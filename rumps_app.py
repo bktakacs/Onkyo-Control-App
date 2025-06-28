@@ -149,8 +149,8 @@ class OnkyoStatusBarApp(rumps.App):
 
         # Create menu items which can be updated later
         # power & mute toggle
-        self.power_item = rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power)
-        self.mute_item = rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute)
+        self.power_item = rumps.MenuItem("Toggle Power\t(-)", callback=self.toggle_power)
+        self.mute_item = rumps.MenuItem("Toggle Mute\t(-)", callback=self.toggle_mute)
 
         # volume 
         self.volup_item = rumps.MenuItem("Increase Volume", callback=self.increase_volume)
@@ -164,7 +164,7 @@ class OnkyoStatusBarApp(rumps.App):
 
         # input selection
         self.lst_mode_stereo = rumps.MenuItem('STEREO', callback=lambda _: self.select_listening_mode('00'))
-        self.lst_mode_film = rumps.MenuItem('FILM', callback=lambda _: self.select_listening_mode('03'))
+        # self.lst_mode_film = rumps.MenuItem('FILM', callback=lambda _: self.select_listening_mode('03'))
         self.lst_mode_action = rumps.MenuItem('ACTION', callback=lambda _: self.select_listening_mode('05'))
 
 
@@ -178,6 +178,8 @@ class OnkyoStatusBarApp(rumps.App):
         audio_input_menu = (
             self.audio_pc_item,
             self.audio_ph_item,
+            self.audio_bt_item,
+            self.audio_ap_item,
         )
 
         listening_mode_menu = (
@@ -229,11 +231,11 @@ class OnkyoStatusBarApp(rumps.App):
 
     def update_power_status(self):
         if self.power_status is not None:
-            self.power_item.title = 'Toggle Power ({})'.format(self.power_status)
+            self.power_item.title = 'Toggle Power\t({})'.format(self.power_status)
 
     def update_mute_status(self):
         if self.mute_status is not None:
-            self.mute_item.title = 'Toggle Mute ({})'.format(self.mute_status)
+            self.mute_item.title = 'Toggle Mute\t({})'.format(self.mute_status)
 
     # --- Command Methods --- #
     def increase_volume(self, _):
@@ -257,6 +259,11 @@ class OnkyoStatusBarApp(rumps.App):
         rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format('On' if self.mute_status == 'Off' else 'Off'), message='Mute has been toggled {}.'.format(str('On' if self.mute_status == 'Off' else 'Off').lower()), data=None, sound=True)
         self.update_mute_status()
 
+    def toggle_listening_mode(self, _):
+        lm = '05' if self.lst_mode_stereo.state == 1 else '00' if self.lst_mode_action.state == 1 else None # 00 for stereo, 05 for action, so send opposite command to toggle. will need updating if more listening modes added
+        self.select_listening_mode(lm)
+
+
     def select_audio_input(self, input):
         send_command('SLI' + input)
         self.audio_pc_item.state = 1 if input == '05' else 0
@@ -267,7 +274,7 @@ class OnkyoStatusBarApp(rumps.App):
     def select_listening_mode(self, input):
         send_command('LMD' + input)
         self.lst_mode_stereo.state = 1 if input == '00' else 0
-        self.lst_mode_film.state   = 1 if input == '03' else 0
+        # self.lst_mode_film.state   = 1 if input == '03' else 0
         self.lst_mode_action.state = 1 if input == '05' else 0
 
 
@@ -317,6 +324,8 @@ def on_key_press(key, app_instance):
                 app_instance.decrease_volume(None)
             elif key == keyboard.Key.page_up:
                 app_instance.toggle_mute(None)
+            elif key == keyboard.Key.page_down:
+                app_instance.toggle_listening_mode(None)
     except AttributeError:
         pass
 
