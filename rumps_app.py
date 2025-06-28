@@ -218,6 +218,7 @@ class OnkyoStatusBarApp(rumps.App):
 
         self.icon = 'on.jpg'
 
+
     # --- Update Items --- #
     def update_title(self):
         if self.current_volume is not None:
@@ -268,6 +269,7 @@ class OnkyoStatusBarApp(rumps.App):
         self.lst_mode_film.state   = 1 if input == '03' else 0
         self.lst_mode_action.state = 1 if input == '05' else 0
 
+
     # --- Loop Methods --- #
     def poll_volume_loop(self):
         while self.keep_running:
@@ -298,78 +300,31 @@ class OnkyoStatusBarApp(rumps.App):
         rumps.quit_application()
     
 
-"""
-It is my belief that I will get better results from the keyboard listener if I put the listener outside of the rumps class. It would look something like this:
+# --- Setup Global Hotkeys --- #
 
-listener = keyboard.Listener(
-    on_press = on_key_press,
-    on_release = on_key_release,
-)
-listener.start()
+hotkeys = {
+    '<ctrl>+<alt>+<cmd>+<shift_l>+<home>': lambda: app_instance.increase_volume(None),
+    '<ctrl>+<alt>+<cmd>+<shift_l>+<end>': lambda: app_instance.decrease_volume(None),
+    '<ctrl>+<alt>+<cmd>+<shift_l>+<page_up>': lambda: app_instance.toggle_mute(None),
+}
 
-From the documentation for global hotkeys:pynput provides the class pynput.keyboard.HotKey for this purpose. It contains two methods to update the state, designed to be easily interoperable with a keyboard listener: pynput.keyboard.HotKey.press and pynput.keyboard.HotKey.release which can be directly passed as listener callbacks.
+def start_hotkey_listener(app_instance):
+    hotkeys = {
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<home>': lambda: app_instance.increase_volume(None),
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<end>': lambda: app_instance.decrease_volume(None),
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<page_up>': lambda: app_instance.toggle_mute(None),
+    }
 
-def on_activate():
-    print('Global hotkey activated')
-
-def for_canonical(f):
-    return lambda k: f(l.canonical(k))
-
-hotkey = keyboard.HitKey(
-    keyboard.HotKey.parse('<ctrl>+<alt>+h'),
-    on_activate)
-)
-
-with keyboard.Listener(
-    on_press=for_canonical(hotkey.press),
-    on_release=for_canonical(hotkey.release)
-) as l:
-    l.join()
-
-This will create a hotkey, and then use a listener to update its state. Once all the specified keys are pressed simultaneously, on_activate will be invoked.
-
-Note that keys are passed through pynput.keyboard.Listener.canonical before being passed to the HotKey instance. This is to remove any modifier state from the key events, and to normalise modifiers with more than one physical button.
-
-The method pynput.keyboard.HotKey.parse is a convenience function to transform shortcut strings to key collections. Please see its documentation for more information.
-
-To register a number of global hotkeys, use the convenience class pynput.keyboard.GlobalHotKeys:
+    with keyboard.GlobalHotKeys(hotkeys) as h:
+        h.join()
 
 
-with keyboard.GlobalHotKeys({
-        '<ctrl>+<alt>+h': on_activate_h,
-        '<ctrl>+<alt>+i': on_activate_i}) as h:
-    h.join()
-
-"""
-
-pressed_keys = set()
-
-def on_key_press(key, app_instance):
-    pressed_keys.add(key)
-    try:
-        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
-            if key == keyboard.Key.home:
-                app_instance.increase_volume(None)
-            elif key == keyboard.Key.end:
-                app_instance.decrease_volume(None)
-            elif key == keyboard.Key.page_up:
-                app_instance.toggle_mute(None)
-    except AttributeError:
-        pass
-
-def on_key_release(key):
-    pressed_keys.discard(key)
-
-
+# --- Run --- #
 if __name__ == "__main__":
 
     app_instance = OnkyoStatusBarApp()
 
-    listener = keyboard.Listener(
-        on_press=lambda key: on_key_press(key, app_instance),
-        on_release=on_key_release,
-    )
-    listener.start()
+    threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start()
 
     # --- Main Loop --- #
     app_instance.run()
