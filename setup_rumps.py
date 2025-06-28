@@ -15,7 +15,19 @@ OPTIONS = {
             'PYTHONPATH': os.environ.get('PYTHONPATH', ''),
         },
     },
-    'packages': ['rumps', 'pynput'],
+    #'packages': ['rumps', 'pynput'],
+    'includes': [
+    'rumps',
+    'pynput',
+    'pynput.keyboard',
+    'pynput.keyboard._darwin',
+    'pynput.mouse',
+    'pynput.mouse._darwin',
+    'pynput._util',
+    'pynput._util.darwin',
+],
+    'frameworks': [],
+    'optimize': 1,
 }
 
 setup(

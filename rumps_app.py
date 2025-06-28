@@ -3,18 +3,26 @@
 # With the help of: ChatGPT
 # Python 3.13.3
 
-# --- Fix App Somehow --- #
+# --- Imports --- #
+import rumps
+rumps.debug_mode(True)
+from pynput import keyboard
+import threading
+import time
+import socket
+import datetime
 import os
 import sys
+import subprocess
 
+
+# --- Fix App Somehow --- #
 if hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 elif getattr(sys, 'frozen', False):
     # When running from a .app bundle
     bundle_dir = os.path.abspath(os.path.dirname(sys.executable))
     os.chdir(bundle_dir)
-
-import subprocess
 
 def check_accessibility_permissions():
     result = subprocess.run(
@@ -24,16 +32,6 @@ def check_accessibility_permissions():
     )
     if result.stdout.strip() != 'true':
         print("Accessibility permissions are not enabled. Please enable them in System Preferences.")
-
-
-# --- Imports --- #
-import rumps
-rumps.debug_mode(True)
-from pynput import keyboard
-import threading
-import time
-import socket
-import datetime
 
 
 # --- Onkyo Information --- #
@@ -320,37 +318,48 @@ class OnkyoStatusBarApp(rumps.App):
     
 
 # --- Setup Keybinds --- #
-pressed_keys = set()
+# pressed_keys = set()
 
-def on_key_press(key, app_instance):
-    try:
-        # Add the key to the pressed keys set
-        pressed_keys.add(key)
+# def on_key_press(key, app_instance):
+#     try:
+#         # Add the key to the pressed keys set
+#         pressed_keys.add(key)
 
-        # Check for the specific hotkey combinations
-        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
-            if key == keyboard.Key.home:
-                app_instance.increase_volume(None)
-            elif key == keyboard.Key.end:
-                app_instance.decrease_volume(None)
-            elif key == keyboard.Key.page_up:
-                app_instance.toggle_mute(None)
-            elif key == keyboard.Key.page_down:
-                app_instance.toggle_listening_mode(None)
-    except AttributeError:
-        pass
+#         # Check for the specific hotkey combinations
+#         if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
+#             if key == keyboard.Key.home:
+#                 app_instance.increase_volume(None)
+#             elif key == keyboard.Key.end:
+#                 app_instance.decrease_volume(None)
+#             elif key == keyboard.Key.page_up:
+#                 app_instance.toggle_mute(None)
+#             elif key == keyboard.Key.page_down:
+#                 app_instance.toggle_listening_mode(None)
+#     except AttributeError:
+#         pass
 
-def on_key_release(key):
-    # Remove the key from the pressed keys set
-    pressed_keys.discard(key)
+# def on_key_release(key):
+#     # Remove the key from the pressed keys set
+#     pressed_keys.discard(key)
 
-def start_hotkey_listener(app_instance):
-    # Start the listener for key presses and releases
-    with keyboard.Listener(
-        on_press=lambda key: on_key_press(key, app_instance),
-        on_release=on_key_release
-    ) as listener:
-        listener.join()
+# def start_hotkey_listener(app_instance):
+#     # Start the listener for key presses and releases
+#     with keyboard.Listener(
+#         on_press=lambda key: on_key_press(key, app_instance),
+#         on_release=on_key_release
+#     ) as listener:
+#         listener.join()
+
+# --- Global Hotkeys Setup --- #
+def start_global_hotkeys(app_instance):
+    print("🔑 Global key listener started")
+    hotkeys = {
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<home>': lambda: app_instance.increase_volume(None),
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<end>': lambda: app_instance.decrease_volume(None),
+        '<ctrl>+<alt>+<cmd>+<shift_l>+<page_up>': lambda: app_instance.toggle_mute(None),
+    }
+    with keyboard.GlobalHotKeys(hotkeys) as h:
+        h.join()
 
 
 # --- Run --- #
@@ -360,7 +369,8 @@ if __name__ == "__main__":
 
     app_instance = OnkyoStatusBarApp()
 
-    threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start() 
+    # threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start() 
+    threading.Thread(target=start_global_hotkeys, args=(app_instance,), daemon=True).start()
 
     # --- Main Loop --- #
     app_instance.run()
