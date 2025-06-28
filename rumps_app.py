@@ -17,7 +17,7 @@ elif getattr(sys, 'frozen', False):
 
 # --- Imports --- #
 import rumps
-rumps.debug_mode(False)
+rumps.debug_mode(True)
 from pynput import keyboard
 import threading
 import time
@@ -213,8 +213,6 @@ class OnkyoStatusBarApp(rumps.App):
 
         self.keep_running = True
 
-        self.pressed_keys = set()
-        threading.Thread(target=self.start_key_listener, daemon=True).start()
         threading.Thread(target=self.poll_volume_loop, daemon=True).start()
         threading.Thread(target=self.poll_power_mute_loop, daemon=True).start()
 
@@ -299,39 +297,6 @@ class OnkyoStatusBarApp(rumps.App):
         self.keep_running = False
         rumps.quit_application()
     
-    # --- Key Listener --- #
-    def on_key_press(self, key):
-        self.pressed_keys.add(key)
-        # print(self.pressed_keys)
-        try:
-            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.home:
-                
-            #     self.increase_volume(None)
-            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
-            #     self.decrease_volume(None)
-            # if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.page_down:
-            #     self.toggle_mute(None)
-        # with keyboard macro using hyper home/end/pgup:
-            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.home:
-                self.increase_volume(None)
-            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.end:
-                self.decrease_volume(None)
-            if keyboard.Key.hyper in self.pressed_keys and key == keyboard.Key.page_down:
-                self.toggle_mute(None)
-    
-        except AttributeError:
-            pass
-
-    def on_key_release(self, key):
-        self.pressed_keys.discard(key)
-
-    def start_key_listener(self):
-        self.listener = keyboard.Listener(
-            on_press=self.on_key_press,
-            on_release=self.on_key_release,
-        )
-        # self.listener.daemon = True
-        self.listener.start()
 
 """
 It is my belief that I will get better results from the keyboard listener if I put the listener outside of the rumps class. It would look something like this:
@@ -377,5 +342,34 @@ with keyboard.GlobalHotKeys({
 
 """
 
-# --- Main Loop --- #
-OnkyoStatusBarApp().run()
+pressed_keys = set()
+
+def on_key_press(key, app_instance):
+    pressed_keys.add(key)
+    try:
+        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
+            if key == keyboard.Key.home:
+                app_instance.increase_volume(None)
+            elif key == keyboard.Key.end:
+                app_instance.decrease_volume(None)
+            elif key == keyboard.Key.page_up:
+                app_instance.toggle_mute(None)
+    except AttributeError:
+        pass
+
+def on_key_release(key):
+    pressed_keys.discard(key)
+
+
+if __name__ == "__main__":
+
+    app_instance = OnkyoStatusBarApp()
+
+    listener = keyboard.Listener(
+        on_press=lambda key: on_key_press(key, app_instance),
+        on_release=on_key_release,
+    )
+    listener.start()
+
+    # --- Main Loop --- #
+    app_instance.run()
