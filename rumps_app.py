@@ -3,10 +3,20 @@
 # With the help of: ChatGPT
 # Python 3.13.3
 
-# --- Fix App Somehow --- #
+# --- Imports --- #
+import rumps
+rumps.debug_mode(True)
+from pynput import keyboard
+import threading
+import time
+import socket
+import datetime
 import os
 import sys
+import subprocess
 
+
+# --- Fix App Somehow --- #
 if hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 elif getattr(sys, 'frozen', False):
@@ -14,15 +24,14 @@ elif getattr(sys, 'frozen', False):
     bundle_dir = os.path.abspath(os.path.dirname(sys.executable))
     os.chdir(bundle_dir)
 
-
-# --- Imports --- #
-import rumps
-rumps.debug_mode(False)
-from pynput import keyboard
-import threading
-import time
-import socket
-import datetime
+def check_accessibility_permissions():
+    result = subprocess.run(
+        ['osascript', '-e', 'tell application "System Events" to return UI elements enabled'],
+        capture_output=True,
+        text=True
+    )
+    if result.stdout.strip() != 'true':
+        print("Accessibility permissions are not enabled. Please enable them in System Preferences.")
 
 
 # --- Onkyo Information --- #
@@ -145,29 +154,42 @@ mute_status = get_mute_status()
 # --- Rumps Setup --- #
 class OnkyoStatusBarApp(rumps.App):
     def __init__(self):
-        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Status Bar App', title='Vol: --', quit_button=None)
+        super(OnkyoStatusBarApp, self).__init__(name='Onkyo Control App', title='Vol: --', quit_button=None)
 
         # Create menu items which can be updated later
-        self.power_item = rumps.MenuItem("Toggle Power (-)", callback=self.toggle_power)
-        self.mute_item = rumps.MenuItem("Toggle Mute (-)", callback=self.toggle_mute)
+        # power & mute toggle
+        self.power_item = rumps.MenuItem("Toggle Power\t(-)", callback=self.toggle_power)
+        self.mute_item = rumps.MenuItem("Toggle Mute\t(-)", callback=self.toggle_mute)
 
+        # volume 
         self.volup_item = rumps.MenuItem("Increase Volume", callback=self.increase_volume)
         self.voldn_item = rumps.MenuItem("Decrease Volume", callback=self.decrease_volume)
 
-        self.audio_pc_item = rumps.MenuItem('mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
+        # audio input
+        self.audio_pc_item = rumps.MenuItem('Mac Mini (PC)', callback=lambda _: self.select_audio_input('05'))
         self.audio_ph_item = rumps.MenuItem('Record Player (PHONO)', callback=lambda _: self.select_audio_input('22'))
+        self.audio_bt_item = rumps.MenuItem('Bluetooth (BT)', callback=lambda _: self.select_audio_input('2E'))
+        self.audio_ap_item = rumps.MenuItem('Airplay (AIR)', callback=lambda _: self.select_audio_input('2D'))
 
+        # input selection
         self.lst_mode_stereo = rumps.MenuItem('STEREO', callback=lambda _: self.select_listening_mode('00'))
+        # self.lst_mode_film = rumps.MenuItem('FILM', callback=lambda _: self.select_listening_mode('03'))
         self.lst_mode_action = rumps.MenuItem('ACTION', callback=lambda _: self.select_listening_mode('05'))
 
-        self.instruction1 = rumps.MenuItem("Volume Up: Alt-R + Home")
-        self.instruction2 = rumps.MenuItem("Volume Down: Alt-R + End")
-        self.instruction3 = rumps.MenuItem("Toggle Mute: Alt-R + PgDn")
+
+        # control instructions
+        self.instruction1 = rumps.MenuItem('Volume Up:\t\tAlt-R + Home')
+        self.instruction2 = rumps.MenuItem('Volume Down:\tAlt-R + End')
+        self.instruction3 = rumps.MenuItem('Toggle Mute:\t\tAlt-R + PgUp')
+        self.instruction4 = rumps.MenuItem('Toggle List. Mode:\tAlt-R + PgDn')
+
 
         # Submenus for inputs
         audio_input_menu = (
             self.audio_pc_item,
             self.audio_ph_item,
+            self.audio_bt_item,
+            self.audio_ap_item,
         )
 
         listening_mode_menu = (
@@ -189,6 +211,7 @@ class OnkyoStatusBarApp(rumps.App):
             self.instruction1,
             self.instruction2,
             self.instruction3,
+            self.instruction4,
             None,
             rumps.MenuItem("Quit", callback=self.quit_app)
         ]
@@ -197,6 +220,7 @@ class OnkyoStatusBarApp(rumps.App):
         self.current_volume = volume
         self.mute_status = mute_status
 
+        self.update_title()
         self.update_power_status()
         self.update_mute_status()
         self.audio_pc_item.state = 1
@@ -204,12 +228,11 @@ class OnkyoStatusBarApp(rumps.App):
 
         self.keep_running = True
 
-        self.pressed_keys = set()
-        threading.Thread(target=self.start_key_listener, daemon=True).start()
         threading.Thread(target=self.poll_volume_loop, daemon=True).start()
         threading.Thread(target=self.poll_power_mute_loop, daemon=True).start()
 
         self.icon = 'on.jpg'
+
 
     # --- Update Items --- #
     def update_title(self):
@@ -220,11 +243,11 @@ class OnkyoStatusBarApp(rumps.App):
 
     def update_power_status(self):
         if self.power_status is not None:
-            self.power_item.title = 'Toggle Power ({})'.format(self.power_status)
+            self.power_item.title = 'Toggle Power\t({})'.format(self.power_status)
 
     def update_mute_status(self):
         if self.mute_status is not None:
-            self.mute_item.title = 'Toggle Mute ({})'.format(self.mute_status)
+            self.mute_item.title = 'Toggle Mute\t({})'.format(self.mute_status)
 
     # --- Command Methods --- #
     def increase_volume(self, _):
@@ -245,17 +268,28 @@ class OnkyoStatusBarApp(rumps.App):
 
     def toggle_mute(self, _):
         send_command('AMT00' if self.mute_status == 'On' else 'AMT01')
-        rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format('On' if self.mute_status == 'Off' else 'Off'), message='Mute has been toggled {}.'.format(str('On' if self.mute_status == 'Off' else 'Off').lower()), data=None, sound=True)
+        time.sleep(1)
+        self.mute_status = get_mute_status()
         self.update_mute_status()
+        rumps.notification(title='Onkyo Control App', subtitle=f'Mute Status: {self.mute_status}', message=f'Mute has been toggled {self.mute_status.lower()}', data=None, sound=True)
+        # rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format('On' if self.mute_status == 'Off' else 'Off'), message='Mute has been toggled {}.'.format(str('On' if self.mute_status == 'Off' else 'Off').lower()), data=None, sound=True)
+
+    def toggle_listening_mode(self, _):
+        lm = '05' if self.lst_mode_stereo.state == 1 else '00' if self.lst_mode_action.state == 1 else None # 00 for stereo, 05 for action, so send opposite command to toggle. will need updating if more listening modes added
+        self.select_listening_mode(lm)
+
 
     def select_audio_input(self, input):
         send_command('SLI' + input)
         self.audio_pc_item.state = 1 if input == '05' else 0
         self.audio_ph_item.state = 1 if input == '22' else 0
+        self.audio_bt_item.state = 1 if input == '2E' else 0
+        self.audio_ap_item.state = 1 if input == '2D' else 0
 
     def select_listening_mode(self, input):
         send_command('LMD' + input)
         self.lst_mode_stereo.state = 1 if input == '00' else 0
+        # self.lst_mode_film.state   = 1 if input == '03' else 0
         self.lst_mode_action.state = 1 if input == '05' else 0
 
 
@@ -266,7 +300,7 @@ class OnkyoStatusBarApp(rumps.App):
             if vol is not None:
                 self.current_volume = vol
                 self.update_title()
-            time.sleep(1)
+            time.sleep(10)
     
     def poll_power_mute_loop(self):
         while self.keep_running:
@@ -288,32 +322,61 @@ class OnkyoStatusBarApp(rumps.App):
         self.keep_running = False
         rumps.quit_application()
     
-    # --- Key Listener --- #
-    def on_key_press(self, key):
-        self.pressed_keys.add(key)
-        print(self.pressed_keys)
-        try:
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.home:
-                
-                self.increase_volume(None)
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.end:
-                self.decrease_volume(None)
-            if keyboard.Key.alt_r in self.pressed_keys and key == keyboard.Key.page_down:
-                self.toggle_mute(None)
-        except AttributeError:
-            pass
 
-    def on_key_release(self, key):
-        self.pressed_keys.discard(key)
+# --- Setup Keybinds --- #
+pressed_keys = set()
 
-    def start_key_listener(self):
-        self.listener = keyboard.Listener(
-            on_press=self.on_key_press,
-            on_release=self.on_key_release,
-        )
-        # self.listener.daemon = True
-        self.listener.start()
+def on_key_press(key, app_instance):
+    try:
+        # Add the key to the pressed keys set
+        pressed_keys.add(key)
+
+        # Check for the specific hotkey combinations
+        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
+            if key == keyboard.Key.home:
+                app_instance.increase_volume(None)
+            elif key == keyboard.Key.end:
+                app_instance.decrease_volume(None)
+            elif key == keyboard.Key.page_up:
+                app_instance.toggle_mute(None)
+            elif key == keyboard.Key.page_down:
+                app_instance.toggle_listening_mode(None)
+    except AttributeError:
+        pass
+
+def on_key_release(key):
+    # Remove the key from the pressed keys set
+    pressed_keys.discard(key)
+
+def start_hotkey_listener(app_instance):
+    # Start the listener for key presses and releases
+    with keyboard.Listener(
+        on_press=lambda key: on_key_press(key, app_instance),
+        on_release=on_key_release
+    ) as listener:
+        listener.join()
+
+# --- Global Hotkeys Setup --- #
+# def start_global_hotkeys(app_instance):
+#     print("🔑 Global key listener started")
+#     hotkeys = {
+#         '<ctrl>+<alt>+<cmd>+<shift_l>+<home>': lambda: app_instance.increase_volume(None),
+#         '<ctrl>+<alt>+<cmd>+<shift_l>+<end>': lambda: app_instance.decrease_volume(None),
+#         '<ctrl>+<alt>+<cmd>+<shift_l>+<page_up>': lambda: app_instance.toggle_mute(None),
+#     }
+#     with keyboard.GlobalHotKeys(hotkeys) as h:
+#         h.join()
 
 
-# --- Main Loop --- #
-OnkyoStatusBarApp().run()
+# --- Run --- #
+if __name__ == "__main__":
+
+    check_accessibility_permissions()
+
+    app_instance = OnkyoStatusBarApp()
+
+    threading.Thread(target=start_hotkey_listener, args=(app_instance,), daemon=True).start() 
+    # threading.Thread(target=start_global_hotkeys, args=(app_instance,), daemon=True).start()
+
+    # --- Main Loop --- #
+    app_instance.run()
