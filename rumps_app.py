@@ -264,11 +264,13 @@ class OnkyoStatusBarApp(rumps.App):
 
     def toggle_power(self, _):
         send_command('PWR00' if self.power_status == 'On' else 'PWR01')
+        time.sleep(0.5)
+        self.power_status = get_power_status()
         self.update_power_status()
 
     def toggle_mute(self, _):
         send_command('AMT00' if self.mute_status == 'On' else 'AMT01')
-        time.sleep(1)
+        time.sleep(0.5)
         self.mute_status = get_mute_status()
         self.update_mute_status()
         rumps.notification(title='Onkyo Control App', subtitle=f'Mute Status: {self.mute_status}', message=f'Mute has been toggled {self.mute_status.lower()}', data=None, sound=True)
@@ -277,7 +279,6 @@ class OnkyoStatusBarApp(rumps.App):
     def toggle_listening_mode(self, _):
         lm = '05' if self.lst_mode_stereo.state == 1 else '00' if self.lst_mode_action.state == 1 else None # 00 for stereo, 05 for action, so send opposite command to toggle. will need updating if more listening modes added
         self.select_listening_mode(lm)
-
 
     def select_audio_input(self, input):
         send_command('SLI' + input)
@@ -289,8 +290,8 @@ class OnkyoStatusBarApp(rumps.App):
     def select_listening_mode(self, input):
         send_command('LMD' + input)
         self.lst_mode_stereo.state = 1 if input == '00' else 0
-        # self.lst_mode_film.state   = 1 if input == '03' else 0
         self.lst_mode_action.state = 1 if input == '05' else 0
+        # self.lst_mode_film.state   = 1 if input == '03' else 0
 
 
     # --- Loop Methods --- #
@@ -300,6 +301,7 @@ class OnkyoStatusBarApp(rumps.App):
             if vol is not None:
                 self.current_volume = vol
                 self.update_title()
+
             time.sleep(10)
     
     def poll_power_mute_loop(self):
@@ -332,7 +334,7 @@ def on_key_press(key, app_instance):
         pressed_keys.add(key)
 
         # Check for the specific hotkey combinations
-        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift_l in pressed_keys:
+        if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift in pressed_keys:
             if key == keyboard.Key.home:
                 app_instance.increase_volume(None)
             elif key == keyboard.Key.end:
@@ -358,7 +360,6 @@ def start_hotkey_listener(app_instance):
 
 # --- Global Hotkeys Setup --- #
 # def start_global_hotkeys(app_instance):
-#     print("🔑 Global key listener started")
 #     hotkeys = {
 #         '<ctrl>+<alt>+<cmd>+<shift_l>+<home>': lambda: app_instance.increase_volume(None),
 #         '<ctrl>+<alt>+<cmd>+<shift_l>+<end>': lambda: app_instance.decrease_volume(None),
