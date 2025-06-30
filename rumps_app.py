@@ -151,7 +151,7 @@ volume = get_current_volume()
 mute_status = get_mute_status()
 
 
-# --- Rumps Setup --- #
+# --- Rumps Status Bar Class --- #
 class OnkyoStatusBarApp(rumps.App):
     def __init__(self):
         super(OnkyoStatusBarApp, self).__init__(name='Onkyo Control App', title='Vol: --', quit_button=None)
@@ -323,6 +323,15 @@ class OnkyoStatusBarApp(rumps.App):
     def quit_app(self, _):
         self.keep_running = False
         rumps.quit_application()
+
+
+# --- Rumps Settings Window --- #
+class SettingsWindow(rumps.Window):
+    def __init__(self):
+        super(SettingsWindow, self).__init__(message='Control Onkyo settings here.', title='Settings', default_text='Enter max volume here (between 1 and 100).', cancel='Exit', dimensions=(200, 150))
+        pass
+
+
     
 
 # --- Setup Keybinds --- #
