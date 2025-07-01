@@ -182,6 +182,7 @@ class OnkyoStatusBarApp(rumps.App):
         self.instruction2 = rumps.MenuItem('Volume Down:\t Hyper + End')
         self.instruction3 = rumps.MenuItem('Toggle Mute:\t\t Hyper + PgUp')
         self.instruction4 = rumps.MenuItem('Toggle List. Mode:\t Hyper + PgDn')
+        self.instruction5 = rumps.MenuItem('Hyper = Cmd + Opt + Ctrl + Shft')
 
         # settings
         self.max_volume = 60
@@ -201,6 +202,14 @@ class OnkyoStatusBarApp(rumps.App):
             self.lst_mode_action,
         )
 
+        instruction_menu = (
+            self.instruction1,
+            self.instruction2,
+            self.instruction3,
+            self.instruction4,
+            self.instruction5,
+        )
+
         # Assign top-level menu
         self.menu = [
             self.power_item,
@@ -212,11 +221,11 @@ class OnkyoStatusBarApp(rumps.App):
             ('Audio Input', audio_input_menu),
             ('Listening Mode', listening_mode_menu),
             None,
-            self.instruction1,
-            self.instruction2,
-            self.instruction3,
-            self.instruction4,
-            None,
+            ('Keybinds', instruction_menu),
+            # self.instruction1,
+            # self.instruction2,
+            # self.instruction3,
+            # self.instruction4,
             rumps.MenuItem('Settings', callback=self.open_settings),
             None,
             rumps.MenuItem('Quit', callback=self.quit_app)
@@ -261,7 +270,7 @@ class OnkyoStatusBarApp(rumps.App):
                                     .format('Home' if self.nav_binds else '↑')
         self.instruction2.title = 'Volume Down:\t Hyper + {}' \
                                     .format('End'  if self.nav_binds else '↓')
-        self.instruction3.title = 'Toggle Mute:\t\t Hyper + PgUp' \
+        self.instruction3.title = 'Toggle Mute:\t\t Hyper + {}' \
                                     .format('PgUp' if self.nav_binds else '←')
         self.instruction4.title = 'Toggle List. Mode:\t Hyper + {}' \
                                     .format('PgDn' if self.nav_binds else '→')
