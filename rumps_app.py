@@ -133,7 +133,7 @@ def get_current_volume():
         print(e)
 
 def set_volume(vol):
-    vol = max(0, min(60, vol))  # redundancy Clamp between 0 and 60
+    # clamped_vol = max(0, min(vol, max_vol))  # redundancy Clamp between 0 and 60
     hex_val = f"{vol:02X}"
     send_command(f"MVL{hex_val}")
 
@@ -178,10 +178,14 @@ class OnkyoStatusBarApp(rumps.App):
 
 
         # control instructions
-        self.instruction1 = rumps.MenuItem('Volume Up:\t\tAlt-R + Home')
-        self.instruction2 = rumps.MenuItem('Volume Down:\tAlt-R + End')
-        self.instruction3 = rumps.MenuItem('Toggle Mute:\t\tAlt-R + PgUp')
-        self.instruction4 = rumps.MenuItem('Toggle List. Mode:\tAlt-R + PgDn')
+        self.instruction1 = rumps.MenuItem('Volume Up:\t\t Hyper + Home')
+        self.instruction2 = rumps.MenuItem('Volume Down:\t Hyper + End')
+        self.instruction3 = rumps.MenuItem('Toggle Mute:\t\t Hyper + PgUp')
+        self.instruction4 = rumps.MenuItem('Toggle List. Mode:\t Hyper + PgDn')
+
+        # settings
+        self.max_volume = 60
+        self.nav_binds = True
 
 
         # Submenus for inputs
@@ -213,7 +217,9 @@ class OnkyoStatusBarApp(rumps.App):
             self.instruction3,
             self.instruction4,
             None,
-            rumps.MenuItem("Quit", callback=self.quit_app)
+            rumps.MenuItem('Settings', callback=self.open_settings),
+            None,
+            rumps.MenuItem('Quit', callback=self.quit_app)
         ]
 
         self.power_status = power_status
@@ -243,16 +249,28 @@ class OnkyoStatusBarApp(rumps.App):
 
     def update_power_status(self):
         if self.power_status is not None:
-            self.power_item.title = 'Toggle Power\t({})'.format(self.power_status)
+            self.power_item.title = 'Toggle Power\t({})' \
+                                        .format(self.power_status)
 
     def update_mute_status(self):
         if self.mute_status is not None:
             self.mute_item.title = 'Toggle Mute\t({})'.format(self.mute_status)
 
+    def update_instructions(self):
+        self.instruction1.title = 'Volume Up:\t\t Hyper + {}' \
+                                    .format('Home' if self.nav_binds else '↑')
+        self.instruction2.title = 'Volume Down:\t Hyper + {}' \
+                                    .format('End'  if self.nav_binds else '↓')
+        self.instruction3.title = 'Toggle Mute:\t\t Hyper + PgUp' \
+                                    .format('PgUp' if self.nav_binds else '←')
+        self.instruction4.title = 'Toggle List. Mode:\t Hyper + {}' \
+                                    .format('PgDn' if self.nav_binds else '→')
+
+
     # --- Command Methods --- #
     def increase_volume(self, _):
         if self.current_volume is not None:
-            self.current_volume = min(self.current_volume + 2, 60)
+            self.current_volume = min(self.current_volume + 2, self.max_volume)
             self.update_title()
             set_volume(self.current_volume)
 
@@ -274,7 +292,6 @@ class OnkyoStatusBarApp(rumps.App):
         self.mute_status = get_mute_status()
         self.update_mute_status()
         rumps.notification(title='Onkyo Control App', subtitle=f'Mute Status: {self.mute_status}', message=f'Mute has been toggled {self.mute_status.lower()}', data=None, sound=True)
-        # rumps.notification(title='Onkyo Control App', subtitle='Mute Status: {}'.format('On' if self.mute_status == 'Off' else 'Off'), message='Mute has been toggled {}.'.format(str('On' if self.mute_status == 'Off' else 'Off').lower()), data=None, sound=True)
 
     def toggle_listening_mode(self, _):
         lm = '05' if self.lst_mode_stereo.state == 1 else '00' if self.lst_mode_action.state == 1 else None # 00 for stereo, 05 for action, so send opposite command to toggle. will need updating if more listening modes added
@@ -319,19 +336,35 @@ class OnkyoStatusBarApp(rumps.App):
             time.sleep(5)
 
 
+    # --- Open Settings --- #
+    @rumps.clicked('Settings')
+    def open_settings(self, _):
+        settings = rumps.Window(
+            message='Enter maximum volume between 1 and 100 below.',
+            title='Set Maximum Volume',
+            default_text='60',
+            cancel='Exit',
+            dimensions=(150, 100), ok='Set',
+        )
+        settings.icon = 'on.jpg'
+        settings.add_button('Switch to {} Keybinds' \
+                        .format('Arrow' if self.nav_binds else 'Navigation'))
+
+        window = settings.run()
+
+        # if user sets max volume
+        if window.clicked == 1:
+            self.max_volume = int(window.text)
+        # if user switches keybind mode
+        if window.clicked == 2:
+            self.nav_binds = bool(1 - int(self.nav_binds))
+            self.update_instructions()
+
+
     # --- Quit App --- #
     def quit_app(self, _):
         self.keep_running = False
         rumps.quit_application()
-
-
-# --- Rumps Settings Window --- #
-class SettingsWindow(rumps.Window):
-    def __init__(self):
-        super(SettingsWindow, self).__init__(message='Control Onkyo settings here.', title='Settings', default_text='Enter max volume here (between 1 and 100).', cancel='Exit', dimensions=(200, 150))
-        pass
-
-
     
 
 # --- Setup Keybinds --- #
@@ -342,16 +375,26 @@ def on_key_press(key, app_instance):
         # Add the key to the pressed keys set
         pressed_keys.add(key)
 
-        # Check for the specific hotkey combinations
+        # Check for the specific hotkey combinations    
         if keyboard.Key.cmd in pressed_keys and keyboard.Key.ctrl in pressed_keys and keyboard.Key.alt in pressed_keys and keyboard.Key.shift in pressed_keys:
-            if key == keyboard.Key.home:
-                app_instance.increase_volume(None)
-            elif key == keyboard.Key.end:
-                app_instance.decrease_volume(None)
-            elif key == keyboard.Key.page_up:
-                app_instance.toggle_mute(None)
-            elif key == keyboard.Key.page_down:
-                app_instance.toggle_listening_mode(None)
+            if app_instance.nav_binds:
+                if key == keyboard.Key.home:
+                    app_instance.increase_volume(None)
+                elif key == keyboard.Key.end:
+                    app_instance.decrease_volume(None)
+                elif key == keyboard.Key.page_up:
+                    app_instance.toggle_mute(None)
+                elif key == keyboard.Key.page_down:
+                    app_instance.toggle_listening_mode(None)
+            else:
+                if key == keyboard.Key.up:
+                    app_instance.increase_volume(None)
+                elif key == keyboard.Key.down:
+                    app_instance.decrease_volume(None)
+                elif key == keyboard.Key.left:
+                    app_instance.toggle_mute(None)
+                elif key == keyboard.Key.right:
+                    app_instance.toggle_listening_mode(None)
     except AttributeError:
         pass
 
