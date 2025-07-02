@@ -351,7 +351,7 @@ class OnkyoStatusBarApp(rumps.App):
         settings = rumps.Window(
             message='Enter an integer between 1 and 100.',
             title='Set Maximum Volume',
-            default_text=str(self.current_volume),
+            default_text=str(self.max_volume),
             cancel='Exit',
             dimensions=(150, 100), ok='Set',
         )
