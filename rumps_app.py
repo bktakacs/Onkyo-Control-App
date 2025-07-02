@@ -364,7 +364,10 @@ class OnkyoStatusBarApp(rumps.App):
         # if user sets max volume
         if window.clicked == 1:
             try:
-                self.max_volume = int(window.text)
+                new_max_volume = int(window.text)
+                self.max_volume = new_max_volume
+                # update current volume if its higher than new max volume
+                self.current_volume = new_max_volume if self.current_volume > new_max_volume else self.current_volume
             except:
                 rumps.alert('Error: Max volume input not an integer.')
         # if user switches keybind mode

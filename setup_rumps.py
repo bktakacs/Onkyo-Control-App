@@ -20,7 +20,7 @@ setup(
     app=APP,
     author='Ben Takacs',
     data_files=DATA_FILES,
-    version='1.0',
+    version='1.01',
     options={'py2app': OPTIONS},
     packages=find_packages(),
     setup_requires=['py2app'],
